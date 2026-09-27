@@ -6,6 +6,8 @@ import tensorflow as tf
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -145,3 +147,15 @@ def evaluate(request: EvaluationRequest):
             status_code=500,
             detail=f"Evaluation failed: {exc}",
         ) from exc
+
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+app.mount(
+    "/",
+    StaticFiles(directory=FRONTEND_DIR, html=True),
+    name="frontend",
+)
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse(FRONTEND_DIR / "index.html")

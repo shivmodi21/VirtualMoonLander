@@ -36,7 +36,6 @@ real Gymnasium environment states and Q-values.
     let aiVisualOffsetX = 0;
     let aiVisualOffsetY = 0;
     let trainingResults = null;
-    const API_URL = 'http://127.0.0.1:8000';
     const TRAINING_VERSION = 'v1';
     let apiAvailable = false;
 
@@ -656,7 +655,7 @@ real Gymnasium environment states and Q-values.
         restartBtn.disabled = true;
 
         try {
-            const response = await fetch(`${API_URL}/api/evaluate`, {
+            const response = await fetch(`/api/evaluate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -747,7 +746,7 @@ real Gymnasium environment states and Q-values.
     async function checkAPI() {
         try {
             const response = await fetch(
-                `${API_URL}/api/health`,
+                `/api/health`,
                 { cache: 'no-store' }
             );
 
