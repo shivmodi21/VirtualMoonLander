@@ -1,0 +1,5 @@
+numpy
+tensorflow
+gymnasium[box2d]
+fastapi
+uvicorn[standard]

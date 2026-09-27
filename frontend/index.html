@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Virtual Lunar Lander — interactive Deep Q-Learning portfolio demo." />
+  <title>Virtual Lunar Lander | DQN Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top">Virtual<span>Moon</span>Lander</a>
+    <nav>
+      <a href="#demo">Demo</a>
+      <a href="#learning">How it learns</a>
+      <a href="#results">Results</a>
+      <a class="github" href="#" id="githubLink" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="eyebrow">DEEP REINFORCEMENT LEARNING</div>
+      <h1>Teach a spacecraft<br><em>how to land.</em></h1>
+      <p class="hero-copy">An interactive demonstration of a Deep Q-Network trained to control Lunar Lander. Watch the agent decide, inspect its Q-values, or take the controls yourself.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#demo">Launch demo ↓</a>
+        <a class="button secondary" href="#learning">Explore the DQN</a>
+      </div>
+    </section>
+
+    <section id="demo" class="demo-section">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">INTERACTIVE LAB</div>
+          <h2>Put the lander to work.</h2>
+        </div>
+        <div id="status" class="status-pill"><span></span> Human mode ready</div>
+      </div>
+
+      <div class="mode-switch" role="tablist" aria-label="Demo mode">
+        <button class="mode active" data-mode="human" role="tab" aria-selected="true">🎮 Human</button>
+        <button class="mode" data-mode="ai" role="tab" aria-selected="false">🤖 AI</button>
+      </div>
+
+      <div class="demo-grid">
+        <div class="lander-panel panel">
+          <div class="panel-topline">
+            <span id="modeLabel">HUMAN CONTROL</span>
+            <span id="episodeState">READY</span>
+          </div>
+          <div class="game-wrap">
+            <canvas id="game" width="900" height="520" aria-label="Lunar lander simulation"></canvas>
+            <div id="gameMessage" class="game-message">
+              <strong>Land softly on the pad.</strong>
+              <span>↑ main engine · ← / → rotate</span>
+            </div>
+          </div>
+          <div class="controls-row">
+            <button id="restart" class="button small">↻ Restart</button>
+            <button id="startAI" class="button small primary hidden">▶ Run AI</button>
+            <span class="hint">Keyboard: <kbd>↑</kbd> <kbd>←</kbd> <kbd>→</kbd></span>
+          </div>
+        </div>
+
+        <aside class="telemetry">
+          <div class="panel telemetry-card">
+            <div class="card-title">LIVE STATE</div>
+            <div class="metrics">
+              <div><span>Altitude</span><strong id="altitude">—</strong></div>
+              <div><span>Vertical velocity</span><strong id="vy">—</strong></div>
+              <div><span>Horizontal velocity</span><strong id="vx">—</strong></div>
+              <div><span>Angle</span><strong id="angle">—</strong></div>
+              <div><span>Fuel</span><strong id="fuel">—</strong></div>
+              <div><span>Leg contact</span><strong id="contacts">—</strong></div>
+              <div><span>Reward</span><strong id="reward">0</strong></div>
+            </div>
+          </div>
+
+          <div class="panel q-card">
+            <div class="card-title">DQN DECISION</div>
+            <p id="qDescription" class="muted">Q-values will appear here when the DQN evaluates a state.</p>
+            <div class="q-list">
+              <div class="q-row" data-action="left"><span>← Left</span><div class="bar"><i></i></div><b>—</b></div>
+              <div class="q-row" data-action="right"><span>→ Right</span><div class="bar"><i></i></div><b>—</b></div>
+              <div class="q-row" data-action="main"><span>🔥 Main</span><div class="bar"><i></i></div><b>—</b></div>
+              <div class="q-row" data-action="none"><span>○ No action</span><div class="bar"><i></i></div><b>—</b></div>
+            </div>
+            <div class="decision" id="decision">No AI decision yet</div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="ai-note panel" id="aiNote">
+        <span class="note-icon">ⓘ</span>
+        <div>
+          <strong>Live DQN evaluation</strong><br>
+          <span id="aiNoteText">
+            Run the trained DQN directly in the Gymnasium environment.
+            The browser visualizes the agent's real decisions, Q-values,
+            state and actions.
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section id="learning" class="learning-section">
+      <div class="eyebrow">UNDER THE HOOD</div>
+      <h2>State → Q-values → Action → Reward.</h2>
+      <p class="section-copy">The agent learns a value for each available action. During evaluation it chooses the action with the highest predicted Q-value.</p>
+
+      <div class="flow panel">
+        <div class="flow-node"><span>01</span><strong>State</strong><small>position · velocity · angle</small></div>
+        <div class="arrow">→</div>
+        <div class="flow-node accent"><span>02</span><strong>Q-Network</strong><small>8 → 64 → 64 → 4</small></div>
+        <div class="arrow">→</div>
+        <div class="flow-node"><span>03</span><strong>Action</strong><small>left · right · main · none</small></div>
+        <div class="arrow">→</div>
+        <div class="flow-node"><span>04</span><strong>Reward</strong><small>learn from the outcome</small></div>
+      </div>
+
+      <div class="learning-grid">
+        <article class="concept panel">
+          <div class="concept-number">01</div>
+          <h3>Experience replay</h3>
+          <p>
+            A 100,000-transition buffer stores past interactions, from which
+            random batches of 64 experiences are sampled for each learning update.
+          </p>
+        </article>
+        <article class="concept panel"><div class="concept-number">02</div><h3>Epsilon-greedy</h3><p>The agent starts by exploring and gradually shifts toward exploiting its learned policy.</p></article>
+        <article class="concept panel"><div class="concept-number">03</div><h3>Target network</h3><p>A slowly updated target network provides a more stable Bellman learning target.</p></article>
+      </div>
+    </section>
+
+    <section id="results" class="results-section">
+      <div class="eyebrow">TRAINING RESULTS</div>
+      <div class="results-heading">
+        <div><h2>Learning over time.</h2>
+          <p class="section-copy">Episode rewards and the moving average are rendered directly from the recorded training data.</p>
+        </div>
+        <div class="result-stats"><div><span>Episodes</span><strong id="episodes">—</strong></div><div><span>Final avg.</span><strong id="finalAverage">—</strong></div><div><span>Training time</span><strong id="trainTime">—</strong></div></div>
+      </div>
+      <div class="plot-panel panel">
+        <div class="reward-chart" id="rewardChart">
+            <div class="chart-loading">
+                Loading training data…
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta panel">
+      <div><div class="eyebrow">PROJECT SOURCE</div><h2>Explore the implementation.</h2><p>See the DQN architecture, training loop, utilities, evaluation code, and reproducible setup.</p></div>
+      <a class="button primary" href="#" id="githubLinkCta" target="_blank" rel="noreferrer">View on GitHub ↗</a>
+    </section>
+  </main>
+
+  <footer><span>VirtualMoonLander</span><span>Deep Q-Learning · TensorFlow · Gymnasium</span></footer>
+  <script src="script.js"></script>
+</body>
+</html>
