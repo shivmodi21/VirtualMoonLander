@@ -699,7 +699,7 @@ real Gymnasium environment states and Q-values.
     async function loadTrainingResults() {
         try {
             const response = await fetch(
-                `../results/training_result_${TRAINING_VERSION}.json`,
+                `/api/training/${TRAINING_VERSION}`,
                 { cache: 'no-store' }
             );
 

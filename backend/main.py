@@ -128,6 +128,20 @@ def health():
     }
 
 
+
+@app.get("/api/training/{training_version}")
+def get_training_result(training_version: str):
+    result_path = BASE_DIR / "results" / f"training_result_{training_version}.json"
+
+    if not result_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Training result '{training_version}' not found.",
+        )
+
+    return FileResponse(result_path)
+
+
 @app.post("/api/evaluate")
 def evaluate(request: EvaluationRequest):
     try:
