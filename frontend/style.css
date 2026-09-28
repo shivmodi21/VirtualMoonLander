@@ -741,6 +741,19 @@ code {
     margin: 10px 0 0;
 }
 
+.hero-actions .button i {
+    margin-left: 7px;
+}
+
+#githubLinkCta i {
+    margin-left: 7px;
+}
+
+#startAI 
+#restart i {
+    margin-right: 7px;
+}
+
 /* .site-header + main {
 } */
 

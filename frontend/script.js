@@ -94,7 +94,12 @@ real Gymnasium environment states and Q-values.
     }
 
     function actionName(action) {
-        return ['← Left', '→ Right', '🔥 Main', '○ No action'][Number(action)] ?? 'Unknown';
+        return [
+            '<i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Left engine',
+            '<i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Right engine',
+            '<i class="fa-solid fa-fire" aria-hidden="true"></i> Main engine',
+            '<i class="fa-regular fa-circle" aria-hidden="true"></i> No action'
+        ][Number(action)] ?? 'Unknown';
     }
 
     function getLegContact(state) {
@@ -184,7 +189,7 @@ real Gymnasium environment states and Q-values.
         row.querySelector('b').textContent = v.toFixed(2);
         row.classList.toggle('selected', Number(selected) === i);
         });
-        decision.textContent = `${source} selected ${actionName(selected)} with Q = ${Number(values[selected]).toFixed(2)}`;
+        decision.innerHTML = `${source} selected ${actionName(selected)} with Q = ${Number(values[selected]).toFixed(2)}`;
         qDescription.textContent = 'The selected action is the highest predicted Q-value for this state.';
     }
 
@@ -225,7 +230,7 @@ real Gymnasium environment states and Q-values.
             episodeState.textContent = human.landed ? 'LANDED' : 'CRASHED';
             message.classList.remove('hide');
             message.innerHTML = human.landed
-                ? '<strong>Successful landing! 🚀</strong><span>Restart to try again.</span>'
+                ? '<strong>Successful landing! <i class="fa-solid fa-rocket" aria-hidden="true"></i></strong><span>Restart to try again.</span>'
                 : '<strong>Crash landing.</strong>' +
                 '<span>↑ Slow your descent.<br>' +
                 '← / → Bring angle near 0°.<br>' +
@@ -314,7 +319,7 @@ real Gymnasium environment states and Q-values.
         if (frame.done) {
             episodeState.textContent = frame.success ? 'LANDED' : 'ENDED';
             message.classList.remove('hide');
-            message.innerHTML = frame.success ? '<strong>Agent landed successfully. 🚀</strong><span>Evaluation complete.</span>' : '<strong>Episode ended.</strong><span>Evaluation complete.</span>';
+            message.innerHTML = frame.success ? '<strong>Agent landed successfully. <i class="fa-solid fa-rocket" aria-hidden="true"></i></strong><span>Evaluation complete.</span>' : '<strong>Episode ended.</strong><span>Evaluation complete.</span>';
         }
         else message.classList.add('hide');
         renderAI(frame);
@@ -793,7 +798,9 @@ real Gymnasium environment states and Q-values.
         document.querySelectorAll('.mode').forEach(b=>{const active=b===btn;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
         modeLabel.textContent=mode==='human'?'HUMAN CONTROL':'DQN EVALUATION';
         startAIBtn.classList.toggle('hidden',mode!=='ai');
-        restartBtn.textContent=mode==='human'?'↻ Restart':'↻ Reset replay';
+        restartBtn.innerHTML = mode === 'human'
+            ? '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Restart'
+            : '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reset replay';
         cancelAnimationFrame(raf); clearInterval(aiTimer); aiTimer=null; last=performance.now();
         if (mode === 'human') {
             setStatus('Human mode ready', 'ok');

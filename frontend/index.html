@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="description" content="Virtual Lunar Lander — interactive Deep Q-Learning portfolio demo." />
   <title>Virtual Lunar Lander | DQN Demo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -14,7 +15,7 @@
       <a href="#demo">Demo</a>
       <a href="#learning">How it learns</a>
       <a href="#results">Results</a>
-      <a class="github" href="https://github.com/shivmodi21/VirtualMoonLander" id="githubLink" target="_blank" rel="noreferrer">GitHub ↗</a>
+      <a class="github" href="https://github.com/shivmodi21/VirtualMoonLander" id="githubLink" target="_blank" rel="noreferrer">GitHub <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
     </nav>
   </header>
 
@@ -24,7 +25,7 @@
       <h1>Teach a spacecraft<br><em>how to land.</em></h1>
       <p class="hero-copy">An interactive demonstration of a Deep Q-Network trained to control Lunar Lander. Watch the agent decide, inspect its Q-values, or take the controls yourself.</p>
       <div class="hero-actions">
-        <a class="button primary" href="#demo">Launch demo ↓</a>
+        <a class="button primary" href="#demo">Launch demo <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
         <a class="button secondary" href="#learning">Explore the DQN</a>
       </div>
     </section>
@@ -39,8 +40,8 @@
       </div>
 
       <div class="mode-switch" role="tablist" aria-label="Demo mode">
-        <button class="mode active" data-mode="human" role="tab" aria-selected="true">🎮 Human</button>
-        <button class="mode" data-mode="ai" role="tab" aria-selected="false">🤖 AI</button>
+        <button class="mode active" data-mode="human" role="tab" aria-selected="true"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> Human</button>
+        <button class="mode" data-mode="ai" role="tab" aria-selected="false"><i class="fa-solid fa-robot" aria-hidden="true"></i> AI</button>
       </div>
 
       <div class="demo-grid">
@@ -53,13 +54,13 @@
             <canvas id="game" width="900" height="520" aria-label="Lunar lander simulation"></canvas>
             <div id="gameMessage" class="game-message">
               <strong>Land softly on the pad.</strong>
-              <span>↑ main engine · ← / → rotate</span>
+              <span><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> main engine · <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> / <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> rotate</span>
             </div>
           </div>
           <div class="controls-row">
-            <button id="restart" class="button small">↻ Restart</button>
-            <button id="startAI" class="button small primary hidden">▶ Run AI</button>
-            <span class="hint">Keyboard: <kbd>↑</kbd> <kbd>←</kbd> <kbd>→</kbd></span>
+            <button id="restart" class="button small"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Restart</button>
+            <button id="startAI" class="button small primary hidden"><i class="fa-solid fa-play" aria-hidden="true"></i> Run AI</button>
+            <span class="hint">Keyboard: <kbd><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></kbd> <kbd><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></kbd> <kbd><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></kbd></span>
           </div>
         </div>
 
@@ -81,10 +82,10 @@
             <div class="card-title">DQN DECISION</div>
             <p id="qDescription" class="muted">Q-values will appear here when the DQN evaluates a state.</p>
             <div class="q-list">
-              <div class="q-row" data-action="left"><span>← Left</span><div class="bar"><i></i></div><b>—</b></div>
-              <div class="q-row" data-action="right"><span>→ Right</span><div class="bar"><i></i></div><b>—</b></div>
-              <div class="q-row" data-action="main"><span>🔥 Main</span><div class="bar"><i></i></div><b>—</b></div>
-              <div class="q-row" data-action="none"><span>○ No action</span><div class="bar"><i></i></div><b>—</b></div>
+              <div class="q-row" data-action="left"><span><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Left engine</span><div class="bar"><i></i></div><b>—</b></div>
+              <div class="q-row" data-action="right"><span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Right engine</span><div class="bar"><i></i></div><b>—</b></div>
+              <div class="q-row" data-action="main"><span><i class="fa-solid fa-fire" aria-hidden="true"></i> Main engine</span><div class="bar"><i></i></div><b>—</b></div>
+              <div class="q-row" data-action="none"><span><i class="fa-regular fa-circle" aria-hidden="true"></i> No action</span><div class="bar"><i></i></div><b>—</b></div>
             </div>
             <div class="decision" id="decision">No AI decision yet</div>
           </div>
@@ -92,7 +93,7 @@
       </div>
 
       <div class="ai-note panel" id="aiNote">
-        <span class="note-icon">ⓘ</span>
+        <span class="note-icon"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span>
         <div>
           <strong>Live DQN evaluation</strong><br>
           <span id="aiNoteText">
@@ -106,16 +107,16 @@
 
     <section id="learning" class="learning-section">
       <div class="eyebrow">UNDER THE HOOD</div>
-      <h2>State → Q-values → Action → Reward.</h2>
+      <h2>State <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Q-values <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Action <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Reward.</h2>
       <p class="section-copy">The agent learns a value for each available action. During evaluation it chooses the action with the highest predicted Q-value.</p>
 
       <div class="flow panel">
         <div class="flow-node"><span>01</span><strong>State</strong><small>position · velocity · angle</small></div>
-        <div class="arrow">→</div>
-        <div class="flow-node accent"><span>02</span><strong>Q-Network</strong><small>8 → 64 → 64 → 4</small></div>
-        <div class="arrow">→</div>
-        <div class="flow-node"><span>03</span><strong>Action</strong><small>left · right · main · none</small></div>
-        <div class="arrow">→</div>
+        <div class="arrow"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></div>
+        <div class="flow-node accent"><span>02</span><strong>Q-Network</strong><small>8 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> 64 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> 64 <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> 4</small></div>
+        <div class="arrow"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></div>
+        <div class="flow-node"><span>03</span><strong>Action</strong><small>left engine · right engine · main engine · none</small></div>
+        <div class="arrow"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></div>
         <div class="flow-node"><span>04</span><strong>Reward</strong><small>learn from the outcome</small></div>
       </div>
 
@@ -152,7 +153,7 @@
 
     <section class="cta panel">
       <div><div class="eyebrow">PROJECT SOURCE</div><h2>Explore the implementation.</h2><p>See the DQN architecture, training loop, utilities, evaluation code, and reproducible setup.</p></div>
-      <a class="button primary" href="https://github.com/shivmodi21/VirtualMoonLander" id="githubLinkCta" target="_blank" rel="noreferrer">View on GitHub ↗</a>
+      <a class="button primary" href="https://github.com/shivmodi21/VirtualMoonLander" id="githubLinkCta" target="_blank" rel="noreferrer">View on GitHub <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
     </section>
   </main>
 
