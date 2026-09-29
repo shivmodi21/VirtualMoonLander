@@ -24,7 +24,7 @@ real Gymnasium environment states and Q-values.
     const LANDER_START_Y = 110;
     const LANDING_SURFACE_Y = H - 50;
     const LANDER_FEET_OFFSET = 44;
-    const PAD_CENTER_X = 0.55 * W;
+    const PAD_CENTER_X = 0.5 * W;
     const PAD_WIDTH = 104;
 
     const TERRAIN_BASE_Y = LANDING_SURFACE_Y;
@@ -37,10 +37,11 @@ real Gymnasium environment states and Q-values.
     let aiReplay = null;
     let aiIndex = 0;
     let aiTimer = null;
+    let aiRequestId = 0;
     let aiVisualOffsetX = 0;
     let aiVisualOffsetY = 0;
     let trainingResults = null;
-    const TRAINING_VERSION = 'v1';
+    const TRAINING_VERSION = 'v2';
     let apiAvailable = false;
 
     const human = {};
@@ -72,6 +73,9 @@ real Gymnasium environment states and Q-values.
 
     function resetAll() {
         cancelAnimationFrame(raf);
+        aiRequestId++;
+        startAIBtn.disabled = false;
+        restartBtn.disabled = false;
         clearInterval(aiTimer);
         aiTimer = null;
         if (mode === 'human') resetHuman(); else resetAIView();
@@ -168,20 +172,32 @@ real Gymnasium environment states and Q-values.
         contactsMetric.style.display = humanMode ? 'none' : '';
     }
 
-    function updateTelemetry(s) {
-        const landerFeetY = s.y + LANDER_FEET_OFFSET;
-        const altitude = Math.max(0, LANDING_SURFACE_Y - landerFeetY);
+    function updateTelemetry(s, isAI = false) {
+        let altitude;
+    
+        if (isAI) {
+            altitude = Number.isFinite(Number(s.altitude)) ? Number(s.altitude) : 0;
+            altitude = Math.max(altitude * 100, 0);
 
-        document.getElementById('altitude').textContent = `${altitude.toFixed(1)} px`;
-        const fuelElement = document.getElementById('fuel');
-        if (s.fuel == null) {
-        fuelElement.textContent = 'N/A';
         } else {
-        fuelElement.textContent = `${Math.max(0, Math.min(s.fuel, 100)).toFixed(0)}%`;
+            const landerFeetY = s.y + LANDER_FEET_OFFSET;
+            altitude = Math.max(0, LANDING_SURFACE_Y - landerFeetY);
         }
-        document.getElementById('vy').textContent = `${s.vy.toFixed(2)}`;
-        document.getElementById('vx').textContent = `${s.vx.toFixed(2)}`;
-        document.getElementById('angle').textContent = `${(s.angle * 180 / Math.PI).toFixed(1)}°`;
+    
+        document.getElementById('altitude').textContent = `${altitude.toFixed(2)}`;
+    
+        const fuelElement = document.getElementById('fuel');
+    
+        if (s.fuel == null) {
+            fuelElement.textContent = 'N/A';
+        } else {
+            fuelElement.textContent = `${Math.max(0, Math.min(s.fuel, 100)).toFixed(0)}%`;
+        }
+    
+        document.getElementById('vy').textContent = `${Number(s.vy).toFixed(2)}`;
+        document.getElementById('vx').textContent = `${Number(s.vx).toFixed(2)}`;
+        document.getElementById('angle').textContent = `${(Number(s.angle) * 180 / Math.PI).toFixed(1)}°`;
+    
         const contacts = s.contacts ?? '—';
         document.getElementById('contacts').textContent = contacts;
         setContactState(contacts);
@@ -1352,15 +1368,33 @@ real Gymnasium environment states and Q-values.
         const angle = Number(frame.angle ?? s[4] ?? 0);
         const vx = Number(frame.vx ?? s[2] ?? 0);
         const vy = Number(frame.vy ?? s[3] ?? 0);
+        const altitude = Number(frame.altitude ?? s[1] ?? 0);
         const contacts = getLegContact(s);
-        updateTelemetry({x: x, y: y, vx, vy, angle, fuel: null, contacts, reward: Number(frame.reward || 0)});
+    
+        updateTelemetry({
+            x: x,
+            y: y,
+            altitude: altitude,
+            vx: vx,
+            vy: vy,
+            angle: angle,
+            fuel: null,
+            contacts: contacts,
+            reward: Number(frame.reward ?? 0)
+        }, true);
+    
         updateQValues(frame.q_values, frame.action, 'DQN');
+    
         if (frame.done) {
             episodeState.textContent = frame.success ? 'LANDED' : 'ENDED';
             message.classList.remove('hide');
-            message.innerHTML = frame.success ? '<strong>Agent landed successfully. <i class="fa-solid fa-rocket" aria-hidden="true"></i></strong><span>Evaluation complete.</span>' : '<strong>Episode ended.</strong><span>Evaluation complete.</span>';
+            message.innerHTML = frame.success
+                ? '<strong>Agent landed successfully. <i class="fa-solid fa-rocket" aria-hidden="true"></i></strong><span>Evaluation complete.</span>'
+                : '<strong>Episode ended.</strong><span>Evaluation complete.</span>';
+        } else {
+            message.classList.add('hide');
         }
-        else message.classList.add('hide');
+    
         renderAI(frame);
     }
 
@@ -1370,7 +1404,7 @@ real Gymnasium environment states and Q-values.
         const { x, y } = getAIVisualPosition(frame);
 
         const drawX = Math.max(30, Math.min(W - 30, x));
-        const drawY = Math.max(40, Math.min(H - 95, y));
+        const drawY = Math.max(40, Math.min(H - 50, y));
         drawLander(
             drawX,
             drawY,
@@ -1450,6 +1484,12 @@ real Gymnasium environment states and Q-values.
                         : 'AI episode complete',
                     aiReplay.success ? 'ok' : 'warn'
                 );
+
+                // Replay is now completely finished.
+                if (mode === 'ai') {
+                    startAIBtn.disabled = false;
+                    restartBtn.disabled = false;
+                }
             }
         }, interval);
     }
@@ -1466,8 +1506,58 @@ real Gymnasium environment states and Q-values.
             return;
         }
 
-        const rewards = trainingResults.episode_history.rewards.map(Number);
-        const episodes = trainingResults.episode_history.episodes?.map(Number) ?? rewards.map((_, index) => index + 1);
+        const rawRewards = trainingResults.episode_history.rewards;
+        const rawEpisodes = trainingResults.episode_history.episodes;
+        const rawSuccess = trainingResults.episode_history.success;
+        
+        if (!Array.isArray(rawRewards) || rawRewards.length === 0) {
+            container.innerHTML = `
+                <div class="chart-loading">
+                    Training data unavailable.
+                </div>
+            `;
+            return;
+        }
+
+        const rewards = rawRewards.map(Number);
+        const success = Array.isArray(rawSuccess) ? rawSuccess.map(Boolean) : null;
+        const episodes = Array.isArray(rawEpisodes)
+            ? rawEpisodes.map(Number)
+            : rewards.map((_, index) => index + 1);
+
+        if (
+            rewards.length !== episodes.length || !success ||
+            success.length !== episodes.length ||
+            rewards.some(value => !Number.isFinite(value)) ||
+            episodes.some(value => !Number.isFinite(value))
+        ) {
+            console.error('Invalid training chart data:', {
+                rewards,
+                episodes,
+                success
+            });
+
+            container.innerHTML = `
+                <div class="chart-loading">
+                    Training data is invalid.
+                </div>
+            `;
+            return;
+        }
+
+        const successRate = [];
+
+        let successfulEpisodes = 0;
+
+        success.forEach((successful, index) => {
+            if (successful) {
+                successfulEpisodes++;
+            }
+
+            successRate.push(
+                (successfulEpisodes / (index + 1)) * 100
+            );
+        });
 
         const width = 1000;
         const height = 430;
@@ -1480,10 +1570,7 @@ real Gymnasium environment states and Q-values.
         const minReward = Math.min(...rewards);
         const maxReward = Math.max(...rewards);
 
-        const padding = Math.max(
-            20,
-            (maxReward - minReward) * 0.08
-        );
+        const padding = Math.max(20, (maxReward - minReward) * 0.08);
 
         const yMin = minReward - padding;
         const yMax = maxReward + padding;
@@ -1494,9 +1581,10 @@ real Gymnasium environment states and Q-values.
                 chartWidth;
         };
 
+        const yRange = Math.max(1, yMax - yMin);
         const y = reward => {
             return margin.top +
-                (1 - (reward - yMin) / (yMax - yMin)) *
+                (1 - (reward - yMin) / yRange) *
                 chartHeight;
         };
 
@@ -1506,9 +1594,16 @@ real Gymnasium environment states and Q-values.
             )
             .join(' ');
 
-        const windowSize = Math.min(
-            trainingResults.episode_history.average_window || 100,
-            rewards.length
+        const configuredWindow = Number(trainingResults.episode_history.average_window);
+        
+        const windowSize = Math.max(
+            1,
+            Math.min(
+                Number.isFinite(configuredWindow)
+                    ? configuredWindow
+                    : 100,
+                rewards.length
+            )
         );
 
         const movingAverage = [];
@@ -1516,30 +1611,31 @@ real Gymnasium environment states and Q-values.
         for (let i = windowSize - 1; i < rewards.length; i++) {
             let sum = 0;
 
-            for (
-                let j = i - windowSize + 1;
-                j <= i;
-                j++
-            ) {
+            for (let j = i - windowSize + 1; j <= i; j++) {
                 sum += rewards[j];
             }
-
-            movingAverage.push({
-                episode: episodes[i],
-                reward: sum / windowSize
-            });
+            movingAverage.push({episode: episodes[i], reward: sum / windowSize});
         }
 
         const averagePoints = movingAverage
-            .map(point =>
-                `${x(point.episode)},${y(point.reward)}`
+            .map(point => `${x(point.episode)},${y(point.reward)}`
             )
             .join(' ');
 
-        const zeroY =
-            yMin <= 0 && yMax >= 0
-                ? y(0)
-                : null;
+        const zeroY = yMin <= 0 && yMax >= 0 ? y(0) : null;
+
+        const successY = value => margin.top + (1 - value / 100) * chartHeight;
+
+        const successPoints = successRate.map((value, index) => {
+            const x =
+                margin.left +
+                (index / Math.max(1, successRate.length - 1)) *
+                chartWidth;
+        
+            const y = successY(value);
+        
+            return `${x.toFixed(2)},${y.toFixed(2)}`;
+        }).join(' ');
 
         const gridLines = 5;
 
@@ -1568,6 +1664,33 @@ real Gymnasium environment states and Q-values.
                     class="chart-axis-label"
                 >
                     ${Math.round(value)}
+                </text>
+
+                <text
+                    x="${width - 18}"
+                    y="${margin.top + 4}"
+                    text-anchor="end"
+                    class="chart-axis-label"
+                >
+                    100%
+                </text>
+
+                <text
+                    x="${width - 18}"
+                    y="${margin.top + chartHeight / 2 + 4}"
+                    text-anchor="end"
+                    class="chart-axis-label"
+                >
+                    50%
+                </text>
+
+                <text
+                    x="${width - 18}"
+                    y="${margin.top + chartHeight + 4}"
+                    text-anchor="end"
+                    class="chart-axis-label"
+                >
+                    0%
                 </text>
             `;
         }
@@ -1631,6 +1754,11 @@ real Gymnasium environment states and Q-values.
                     class="average-line"
                 />
 
+                <polyline
+                    points="${successPoints}"
+                    class="success-line"
+                />
+
                 ${xLabels}
 
                 <text
@@ -1650,6 +1778,15 @@ real Gymnasium environment states and Q-values.
                     class="chart-axis-title"
                 >
                     Total reward
+                </text>
+
+                <text
+                    x="${width - 16}"
+                    y="${margin.top - 10}"
+                    text-anchor="end"
+                    class="chart-axis-title"
+                >
+                    Success rate
                 </text>
 
                 <g class="chart-legend">
@@ -1682,6 +1819,22 @@ real Gymnasium environment states and Q-values.
                     >
                         ${windowSize}-episode moving average
                     </text>
+
+                    <line
+                        x1="${margin.left + 360}"
+                        y1="18"
+                        x2="${margin.left + 384}"
+                        y2="18"
+                        class="success-line"
+                    />
+
+                    <text
+                        x="${margin.left + 392}"
+                        y="22"
+                        class="chart-legend-label"
+                    >
+                        Cumulative success rate
+                    </text>
                 </g>
             </svg>
         `;
@@ -1690,6 +1843,8 @@ real Gymnasium environment states and Q-values.
     async function runAI() {
         clearInterval(aiTimer);
         aiTimer = null;
+
+        const requestId = ++aiRequestId;
 
         message.classList.add('hide');
         episodeState.textContent = 'RUNNING';
@@ -1718,6 +1873,10 @@ real Gymnasium environment states and Q-values.
 
             const result = await response.json();
 
+            if(requestId !== aiRequestId || mode !== 'ai'){
+                return;
+            }
+
             aiReplay = result;
             aiIndex = 0;
 
@@ -1725,6 +1884,10 @@ real Gymnasium environment states and Q-values.
 
         } catch (error) {
             console.error('AI evaluation failed:', error);
+
+            if (requestId !== aiRequestId || mode !== 'ai') {
+                return;
+            }
 
             episodeState.textContent = 'ERROR';
             setStatus('AI evaluation failed', 'bad');
@@ -1734,7 +1897,6 @@ real Gymnasium environment states and Q-values.
                 '<strong>AI evaluation failed.</strong>' +
                 `<span>${error.message}</span>`;
 
-        } finally {
             startAIBtn.disabled = false;
             restartBtn.disabled = false;
         }
@@ -1760,6 +1922,13 @@ real Gymnasium environment states and Q-values.
                     ? Number(
                         trainingResults.training_results.final_average_reward
                     ).toFixed(2)
+                    : '—';
+
+            document.getElementById('successRate').textContent =
+                trainingResults.training_results?.success_rate != null
+                    ? `${Number(
+                        trainingResults.training_results.success_rate
+                    ).toFixed(1)}%`
                     : '—';
 
             document.getElementById('trainTime').textContent =
@@ -1842,11 +2011,23 @@ real Gymnasium environment states and Q-values.
         restartBtn.innerHTML = mode === 'human'
             ? '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Restart'
             : '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reset replay';
-        cancelAnimationFrame(raf); clearInterval(aiTimer); aiTimer=null; last=performance.now();
+        
+        cancelAnimationFrame(raf);
+        aiRequestId++;
+
+        startAIBtn.disabled = false;
+        restartBtn.disabled = false;
+        clearInterval(aiTimer);
+        aiTimer=null;
+        last=performance.now();
+        
         if (mode === 'human') {
             setStatus('Human mode ready', 'ok');
             resetHuman();
         } else {
+            startAIBtn.disabled = false;
+            restartBtn.disabled = false;
+
             if (apiAvailable) {
                 setStatus('DQN evaluation ready', 'ok');
             } else {

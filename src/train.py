@@ -6,6 +6,7 @@ import json
 import gymnasium as gym
 import numpy as np
 import tensorflow as tf
+import random
 
 from dqn import build_q_network, compute_loss, create_optimizer
 from utils import (
@@ -20,7 +21,7 @@ from utils import (
     update_target_network,
 )
 
-TRAINING_VERSION = "v1"
+TRAINING_VERSION = "v2"
 
 MEMORY_SIZE = 100_000
 GAMMA = 0.995
@@ -39,12 +40,22 @@ DEFAULT_RESULTS_PATH = (PROJECT_ROOT / "results" / f"training_result_{TRAINING_V
 Experience = namedtuple("Experience", ["state", "action", "reward", "next_state", "done"])
 
 
+def is_successful_landing(state: np.ndarray, terminated: bool) -> bool:
+    if not terminated:
+        return False
+
+    left_leg_contact = bool(state[6])
+    right_leg_contact = bool(state[7])
+
+    return left_leg_contact and right_leg_contact
+
 def save_training_results(
     output_path,
     training_version,
     environment,
     episodes_configured,
     rewards,
+    success_history,
     seed,
     final_epsilon,
     final_average_reward,
@@ -55,6 +66,9 @@ def save_training_results(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     episodes = list(range(1, len(rewards) + 1))
     environment_solved = (final_average_reward >= SOLVED_REWARD)
+
+    successful_landings = int(sum(success_history))
+    success_rate = (100.0 * successful_landings / len(success_history) if success_history else 0.0)
 
     results = {
         "training_version": training_version,
@@ -86,6 +100,8 @@ def save_training_results(
             "environment_solved": environment_solved,
             "final_epsilon": float(final_epsilon),
             "final_average_reward": float(final_average_reward),
+            "successful_landings": successful_landings,
+            "success_rate": float(success_rate),
             "training_time_seconds": float(training_time),
             "training_time_minutes": float(training_time / 60),
         },
@@ -93,6 +109,7 @@ def save_training_results(
         "episode_history": {
             "episodes": episodes,
             "rewards": [float(reward) for reward in rewards],
+            "success": [bool(success) for success in success_history],
             "average_window": AVERAGE_WINDOW,
         },
     }
@@ -104,9 +121,10 @@ def train(
     seed=DEFAULT_SEED,
     model_path=DEFAULT_MODEL_PATH,
     results_path=DEFAULT_RESULTS_PATH,
-):
-    tf.random.set_seed(seed)
+):  
+    random.seed(seed)
     np.random.seed(seed)
+    tf.random.set_seed(seed)
 
     env = gym.make("LunarLander-v3")
     state_size = int(env.observation_space.shape[0])
@@ -128,18 +146,23 @@ def train(
 
     memory_buffer = deque(maxlen=MEMORY_SIZE)
     point_history = []
+    success_history = []
     epsilon = 1.0
     start = time.time()
 
     for episode in range(num_episodes):
         state, _ = env.reset(seed=seed + episode)
         total_points = 0.0
+        successful_landing = False
 
         for t in range(MAX_TIMESTEPS):
             q_values = q_network(np.expand_dims(state, axis=0), training=False)
             action = get_action(q_values, epsilon)
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
+
+            if terminated:
+                successful_landing = is_successful_landing(next_state, terminated)
 
             memory_buffer.append(Experience(state, action, reward, next_state, done))
 
@@ -154,12 +177,15 @@ def train(
                 break
 
         point_history.append(total_points)
+        success_history.append(successful_landing)
         epsilon = get_new_eps(epsilon)
         average = float(np.mean(point_history[-AVERAGE_WINDOW:]))
+        success_rate = (100.0 * np.mean(success_history))
 
         print(
             f"\rEpisode {episode + 1}/{num_episodes} | "
             f"Average reward ({min(AVERAGE_WINDOW, len(point_history))}): {average:7.2f} | "
+            f"Success rate: {success_rate:6.2f}% | "
             f"epsilon: {epsilon:.3f}",
             end="",
         )
@@ -184,6 +210,7 @@ def train(
         environment="LunarLander-v3",
         episodes_configured=num_episodes,
         rewards=point_history,
+        success_history=success_history,
         seed=seed,
         final_epsilon=epsilon,
         final_average_reward=final_average,

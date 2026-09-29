@@ -697,6 +697,13 @@ code {
     vector-effect: non-scaling-stroke;
 }
 
+.success-line {
+    fill: none;
+    stroke: #73e0b1;
+    stroke-width: 2.2;
+    vector-effect: non-scaling-stroke;
+}
+
 .chart-axis-label {
     fill: #8fa4ad;
     font-size: 12px;

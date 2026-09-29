@@ -6,7 +6,7 @@ import tensorflow as tf
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-TRAINING_VERSION = "v1"
+TRAINING_VERSION = "v2"
 
 DEFAULT_MODEL_PATH = (PROJECT_ROOT / "models" / f"lunar_lander_{TRAINING_VERSION}.keras")
 

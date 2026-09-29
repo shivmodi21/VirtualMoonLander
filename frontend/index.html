@@ -51,7 +51,7 @@
             <span id="episodeState">READY</span>
           </div>
           <div class="game-wrap">
-            <canvas id="game" width="900" height="520" aria-label="Lunar lander simulation"></canvas>
+            <canvas id="game" width="1000" height="625" aria-label="Lunar lander simulation"></canvas>
             <div id="gameMessage" class="game-message">
               <strong>Land softly on the pad.</strong>
               <span><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> main engine · <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> / <i class="fa-solid fa-arrow-right" aria-hidden="true"></i> rotate</span>
@@ -69,9 +69,9 @@
             <div class="card-title">LIVE STATE</div>
             <div class="metrics">
               <div><span>Altitude</span><strong id="altitude">—</strong></div>
-              <div><span>Vertical velocity</span><strong id="vy">—</strong></div>
-              <div><span>Horizontal velocity</span><strong id="vx">—</strong></div>
               <div><span>Angle</span><strong id="angle">—</strong></div>
+              <div><span>Horizontal velocity</span><strong id="vx">—</strong></div>
+              <div><span>Vertical velocity</span><strong id="vy">—</strong></div>
               <div id="fuelMetric">
                   <span>Fuel</span>
                   <strong id="fuel">—</strong>
@@ -147,7 +147,12 @@
         <div><h2>Learning over time.</h2>
           <p class="section-copy">Episode rewards and the moving average are rendered directly from the recorded training data.</p>
         </div>
-        <div class="result-stats"><div><span>Episodes</span><strong id="episodes">—</strong></div><div><span>Final avg.</span><strong id="finalAverage">—</strong></div><div><span>Training time</span><strong id="trainTime">—</strong></div></div>
+        <div class="result-stats">
+          <div><span>Episodes</span><strong id="episodes">—</strong></div>
+          <div><span>Final avg.</span><strong id="finalAverage">—</strong></div>
+          <div><span>Success rate</span><strong id="successRate">—</strong></div>
+          <div><span>Training time</span><strong id="trainTime">—</strong></div>
+        </div>
       </div>
       <div class="plot-panel panel">
         <div class="reward-chart" id="rewardChart">

@@ -2,14 +2,10 @@ import random
 import numpy as np
 import tensorflow as tf
 
-SEED = 0
 MINIBATCH_SIZE = 64
 TAU = 1e-3
 E_DECAY = 0.995
 E_MIN = 0.01
-
-random.seed(SEED)
-np.random.seed(SEED)
 
 
 def get_experiences(memory_buffer):
@@ -25,7 +21,7 @@ def get_experiences(memory_buffer):
 
 def check_update_conditions(t, num_steps_upd, memory_buffer):
     """Return True when it is time and there is enough data for an update."""
-    return (t + 1) % num_steps_upd == 0 and len(memory_buffer) > MINIBATCH_SIZE
+    return (t + 1) % num_steps_upd == 0 and len(memory_buffer) >= MINIBATCH_SIZE
 
 
 def get_new_eps(epsilon):

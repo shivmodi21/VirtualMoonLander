@@ -11,14 +11,26 @@ from fastapi.responses import FileResponse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-TRAINING_VERSION = "v1"
+TRAINING_VERSION = "v2"
 DEFAULT_MODEL_PATH = (BASE_DIR / "models" / f"lunar_lander_{TRAINING_VERSION}.keras")
+MODEL = None
 
 app = FastAPI(
     title="VirtualMoonLander API",
     description="API for live DQN Lunar Lander evaluation.",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+def load_model():
+    global MODEL
+
+    if not DEFAULT_MODEL_PATH.exists():
+        raise FileNotFoundError(
+            f"Trained model not found at '{DEFAULT_MODEL_PATH}'."
+        )
+
+    MODEL = tf.keras.models.load_model(DEFAULT_MODEL_PATH)
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 class EvaluationRequest(BaseModel):
     seed: int = 0
 
@@ -37,15 +48,17 @@ def to_canvas(state: np.ndarray) -> tuple[float, float]:
     y = 470.0 - float(state[1]) * 300.0
     return x, y
 
+def is_successful_landing(state: np.ndarray, terminated: bool) -> bool:
+    if not terminated:
+        return False
 
-def evaluate_episode(model_path: Path, seed: int = 0):
-    if not model_path.exists():
-        raise FileNotFoundError(
-            f"Trained model not found at '{model_path}'."
-        )
+    left_leg_contact = bool(state[6])
+    right_leg_contact = bool(state[7])
 
-    model = tf.keras.models.load_model(model_path)
+    return left_leg_contact and right_leg_contact
 
+
+def evaluate_episode(model, seed: int = 0):
     env = gym.make("LunarLander-v3")
 
     state, _ = env.reset(seed=seed)
@@ -77,23 +90,32 @@ def evaluate_episode(model_path: Path, seed: int = 0):
 
         x, y = to_canvas(state_array)
 
+        next_state_array = np.asarray(next_state, dtype=np.float32)
+
         frames.append(
-            {
+            {   
+                # State used by the DQN to choose this action.
                 "state": state_array.tolist(),
+
+                # State produced after taking the action.
+                "next_state": next_state_array.tolist(),
+
                 "q_values": q_values.astype(float).tolist(),
                 "action": action,
                 "reward": float(reward),
 
-                # Gymnasium state
                 "x": x,
                 "y": y,
+
+                "altitude": float(state_array[1]),
                 "vx": float(state_array[2]),
                 "vy": float(state_array[3]),
                 "angle": float(state_array[4]),
                 "left_leg_contact": bool(state_array[6]),
                 "right_leg_contact": bool(state_array[7]),
 
-                "done": False,
+                # This action ended the environment episode.
+                "done": bool(terminated or truncated),
                 "success": False,
             }
         )
@@ -101,9 +123,14 @@ def evaluate_episode(model_path: Path, seed: int = 0):
         state = next_state
 
     if frames:
-        frames[-1]["done"] = True
+        terminal_state = np.asarray(state, dtype=np.float32)
+        frames[-1]["terminal_state"] = terminal_state.tolist()
 
-    success = total_reward >= 200.0
+    terminal_state = np.asarray(state, dtype=np.float32)
+    if frames:
+        frames[-1]["terminal_state"] = terminal_state.tolist()
+    
+    success = is_successful_landing(terminal_state, terminated,)
 
     if frames:
         frames[-1]["success"] = success
@@ -145,10 +172,7 @@ def get_training_result(training_version: str):
 @app.post("/api/evaluate")
 def evaluate(request: EvaluationRequest):
     try:
-        return evaluate_episode(
-            model_path=DEFAULT_MODEL_PATH,
-            seed=request.seed,
-        )
+        return evaluate_episode(model=MODEL, seed=request.seed,)
 
     except FileNotFoundError as exc:
         raise HTTPException(
