@@ -741,17 +741,16 @@ code {
     margin: 10px 0 0;
 }
 
-.hero-actions .button i {
-    margin-left: 7px;
-}
-
+/* Icon after button text */
+.hero-actions .button i,
 #githubLinkCta i {
-    margin-left: 7px;
+    margin-left: 5px;
 }
 
-#startAI 
+/* Icon before button text */
+#startAI i,
 #restart i {
-    margin-right: 7px;
+    margin-right: 5px;
 }
 
 /* .site-header + main {
