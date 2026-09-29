@@ -181,7 +181,7 @@ real Gymnasium environment states and Q-values.
 
         } else {
             const landerFeetY = s.y + LANDER_FEET_OFFSET;
-            altitude = Math.max(0, LANDING_SURFACE_Y - landerFeetY);
+            altitude = Math.max(0, (LANDING_SURFACE_Y - landerFeetY)/3);
         }
     
         document.getElementById('altitude').textContent = `${altitude.toFixed(2)}`;
