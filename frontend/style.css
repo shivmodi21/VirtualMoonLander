@@ -1,12 +1,11 @@
 :root {
     --bg: #071019;
     --panel: #0c1722;
-    --panel2: #101d29;
     --text: #eef5f8;
     --muted: #8fa1ad;
     --line: #20313e;
+    --info: #66b3ff;
     --accent: #73e0b1;
-    --accent2: #b3f2d6;
     --warn: #ffcc66;
     --danger: #ff7d82;
     --radius: 20px;
@@ -140,6 +139,19 @@ nav .github {
     border-color: #38515f;
 }
 
+.button:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    transform: none;
+    filter: saturate(0.35);
+    box-shadow: none;
+}
+
+.button:disabled:hover {
+    transform: none;
+    border-color: var(--line);
+}
+
 .button.primary {
     background: var(--accent);
     color: #062016;
@@ -188,6 +200,9 @@ nav .github {
 }
 
 .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     font-size: 12px;
     color: var(--muted);
     border: 1px solid var(--line);
@@ -196,13 +211,61 @@ nav .github {
     white-space: nowrap;
 }
 
-.status-pill span {
+.status-pill > span {
     display: inline-block;
     width: 7px;
     height: 7px;
+    flex: 0 0 7px;
     border-radius: 50%;
     background: var(--accent);
-    margin-right: 7px;
+}
+
+.status-pill.loading {
+    color: var(--warn);
+    border-color: rgba(255, 204, 102, 0.25);
+}
+
+.status-pill.loading > span {
+    width: 12px;
+    height: 12px;
+    flex-basis: 12px;
+    border: 2px solid rgba(255, 204, 102, 0.3);
+    border-top-color: var(--warn);
+    background: transparent;
+    animation: status-spin 0.8s linear infinite;
+}
+
+.status-pill.success {
+    color: var(--accent);
+    border-color: rgba(115, 224, 177, 0.25);
+}
+
+.status-pill.success > span {
+    background: var(--accent);
+}
+
+.status-pill.warning {
+    color: var(--warn);
+    border-color: rgba(255, 204, 102, 0.25);
+}
+
+.status-pill.warning > span {
+    background: var(--warn);
+}
+
+.status-pill.error {
+    color: var(--danger);
+    border-color: rgba(255, 125, 130, 0.25);
+}
+
+.status-pill.error > span {
+    background: var(--danger);
+}
+
+@keyframes status-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .mode-switch {
@@ -265,6 +328,40 @@ nav .github {
     color: var(--muted);
 }
 
+.episode-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.episode-state.ready,
+.episode-state.api-offline {
+    color: var(--muted);
+}
+
+.episode-state.landed {
+    color: var(--accent);
+}
+
+.episode-state.flying,
+.episode-state.playing {
+    color: var(--info);
+}
+
+.episode-state.loading {
+    color: var(--warn);
+}
+
+.episode-state.crashed,
+.episode-state.ended,
+.episode-state.error {
+    color: var(--danger);
+}
+
+.episode-state .fa-spinner {
+    font-size: 0.8em;
+}
+
 .game-wrap {
     position: relative;
     background: #050b12;
@@ -274,7 +371,7 @@ nav .github {
     display: block;
     width: 100%;
     height: auto;
-    aspect-ratio: 900 / 520;
+    aspect-ratio: 1000 / 625;
 }
 
 .game-message {
@@ -297,12 +394,45 @@ nav .github {
     backdrop-filter: blur(8px);
     transition: opacity 0.2s;
     z-index: 5;
+
+    transition:
+        opacity 0.2s,
+        border-color 0.2s,
+        color 0.2s,
+        background 0.2s;
 }
 
 .game-message strong {
-    display: block;
-    font-size: 16px;
-    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.game-message.success {
+    border-color: rgba(115, 224, 177, 0.35);
+    box-shadow: 0 0 20px rgba(115, 224, 177, 0.08);
+}
+
+.game-message.success strong {
+    color: var(--accent);
+}
+
+.game-message.failure {
+    border-color: rgba(255, 125, 130, 0.35);
+    box-shadow: 0 0 20px rgba(255, 125, 130, 0.08);
+}
+
+.game-message.failure strong {
+    color: var(--danger);
+}
+
+.game-message.loading {
+    border-color: rgba(255, 204, 102, 0.35);
+    box-shadow: 0 0 20px rgba(255, 204, 102, 0.08);
+}
+
+.game-message.loading strong {
+    color: var(--warn);
 }
 
 .game-message span {
@@ -317,30 +447,75 @@ nav .github {
 }
 
 .controls-row {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 13px 15px;
+    gap: 12px;
+    min-height: 58px;
+    padding: 10px 14px;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(20, 35, 48, 0.96),
+            rgba(10, 23, 34, 0.98)
+        );
+    border-top: 1px solid rgba(115, 224, 177, 0.10);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 -8px 24px rgba(0, 0, 0, 0.12);
+    border-radius: 0 0 24px 24px;
 }
 
-.hint {
+.controls-row .hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 2px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.controls-row .hint kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 7px;
+    border: 1px solid #2c4252;
+    border-radius: 7px;
+    background: linear-gradient(180deg, #12202c, #0b1721);
+    color: #dce7ed;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 2px 4px rgba(0, 0, 0, 0.18);
+}
+
+/* .hint {
     margin-left: auto;
     color: var(--muted);
     font-size: 11px;
-}
+} */
 
-kbd {
+/* kbd {
     border: 1px solid #30434f;
     background: #0a151e;
     border-radius: 5px;
     padding: 2px 6px;
     color: var(--text);
-}
+} */
 
 .telemetry {
     display: grid;
+    grid-template-rows: 1fr 1fr;
     gap: 16px;
-    align-content: start;
+    height: 100%;
+    min-height: 0;
 }
 
 .telemetry-card,
@@ -476,7 +651,7 @@ kbd {
 .ai-note code,
 code {
     font-family: "SFMono-Regular", Consolas, monospace;
-    color: var(--accent2);
+    color: var(--accent);
 }
 
 .learning-section {
@@ -662,14 +837,15 @@ code {
 
 .reward-chart {
     width: 100%;
-    min-height: 480px;
+    aspect-ratio: 1000 / 430;
     padding: 18px;
     box-sizing: border-box;
 }
 
 .reward-chart-svg {
     width: 100%;
-    height: 480px;
+    height: auto;
+    aspect-ratio: 1000 / 430;
     display: block;
 }
 
@@ -702,6 +878,11 @@ code {
     stroke: #73e0b1;
     stroke-width: 2.2;
     vector-effect: non-scaling-stroke;
+}
+
+.plot-panel {
+    min-height: 310px;
+    overflow: hidden;
 }
 
 .chart-axis-label {
@@ -789,6 +970,8 @@ footer {
 
     .telemetry {
         grid-template-columns: 1fr 1fr;
+        grid-template-rows: none;
+        height: auto;
     }
 
     .game-message {
@@ -823,6 +1006,10 @@ footer {
 
     .result-stats {
         flex-wrap: wrap;
+    }
+
+    .plot-panel {
+        min-height: 0;
     }
 
     .cta {
@@ -870,24 +1057,35 @@ footer {
     }
 
     .game-message {
-        left: 14px;
-        top: 14px;
-        width: 70%;
-        max-width: 70%;
-        padding: 11px 14px;
-        font-size: 12px;
+        left: 10px;
+        top: 10px;
+        width: auto;
+        max-width: 46%;
+        padding: 7px 9px;
+        border-radius: 9px;
+        font-size: 9px;
     }
     
     .game-message strong {
-        font-size: 12px;
+        font-size: 10px;
+        gap: 4px;
+        margin-bottom: 3px;
     }
     
     .game-message span {
-        font-size: 10px;
+        font-size: 8px;
+        line-height: 1.35;
     }
 
     .controls-row {
-        flex-wrap: wrap;
+        padding: 10px;
+        gap: 8px;
+        background: var(--panel);
+    }
+
+    .controls-row .button {
+        position: relative;
+        z-index: 11;
     }
 
     .hint {
@@ -910,9 +1108,4 @@ footer {
         flex-direction: column;
         gap: 8px;
     }
-}
-
-.plot-panel {
-    min-height: 310px;
-    overflow: hidden;
 }

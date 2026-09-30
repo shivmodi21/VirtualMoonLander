@@ -32,6 +32,7 @@ DEFAULT_SEED = 0
 MAX_TIMESTEPS = 1000
 AVERAGE_WINDOW = 100
 SOLVED_REWARD = 200.0
+CONSECUTIVE_SOLVED_EPISODES = 10
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MODEL_PATH = (PROJECT_ROOT / "models" / f"lunar_lander_{TRAINING_VERSION}.keras")
@@ -190,8 +191,19 @@ def train(
             end="",
         )
 
-        if len(point_history) >= AVERAGE_WINDOW and average >= SOLVED_REWARD:
-            print(f"\n\nEnvironment solved in {episode + 1} episodes.")
+        average = float(np.mean(point_history[-AVERAGE_WINDOW:]))
+
+        has_required_average = (len(point_history) >= AVERAGE_WINDOW and average >= SOLVED_REWARD)
+        has_required_consecutive_episodes = (len(point_history) >= CONSECUTIVE_SOLVED_EPISODES and all(reward >= SOLVED_REWARD for reward in point_history[-CONSECUTIVE_SOLVED_EPISODES:]))
+
+        if has_required_average and has_required_consecutive_episodes:
+            print(
+                f"Solved at episode {episode + 1} "
+                f"with {AVERAGE_WINDOW}-episode average "
+                f"{average:.2f} and the last "
+                f"{CONSECUTIVE_SOLVED_EPISODES} episodes "
+                f"all >= {SOLVED_REWARD:.0f}"
+            )
             break
     else:
         print()

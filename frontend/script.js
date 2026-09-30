@@ -14,6 +14,7 @@ real Gymnasium environment states and Q-values.
     const message = document.getElementById('gameMessage');
     const restartBtn = document.getElementById('restart');
     const startAIBtn = document.getElementById('startAI');
+    const keyboardHint = document.getElementById('keyboardHint');
     const qDescription = document.getElementById('qDescription');
     const decision = document.getElementById('decision');
     const qRows = [...document.querySelectorAll('.q-row')];
@@ -55,20 +56,79 @@ real Gymnasium environment states and Q-values.
         human.reward = 0;
         human.done = false;
         human.landed = false;
-        episodeState.textContent = 'FLYING';
+        setStatus('Human mode ready', 'ok');
+        setEpisodeState('FLYING');
+        
         message.classList.remove('hide');
-        message.innerHTML =
-            '<strong>Land softly on the pad.</strong>' +
-            '<span>↑ Main engine: slow descent<br>' +
+        setGameMessage(
+            'info',
+            'Land softly on the pad.',
+            '↑ Main engine: slow descent<br>' +
             '← / → Adjust angle toward 0°<br>' +
-            'Release controls to stabilize</span>';
+            'Release controls to stabilize'
+        );
         updateTelemetry(human);
         clearQValues();
     }
 
     function setStatus(text, color = 'ok') {
-        status.innerHTML = `<span></span> ${text}`;
-        status.querySelector('span').style.background = color === 'warn' ? 'var(--warn)' : color === 'bad' ? 'var(--danger)' : 'var(--accent)';
+        status.classList.remove(
+            'loading',
+            'success',
+            'warning',
+            'error'
+        );
+    
+        const statusClass = {
+            ok: 'success',
+            success: 'success',
+            warn: 'warning',
+            warning: 'warning',
+            bad: 'error',
+            error: 'error',
+            loading: 'loading'
+        }[color] || 'success';
+    
+        status.classList.add(statusClass);
+        status.innerHTML = `<span></span>${text}`;
+    }
+
+    function setEpisodeState(state) {
+        episodeState.className = `episode-state ${state.toLowerCase().replace(/\s+/g, '-')}`;
+
+        if (state === 'LOADING') {
+            episodeState.innerHTML =
+                '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> LOADING...';
+        }
+        else if (state === 'PLAYING') {
+            episodeState.innerHTML =
+                '<i class="fa-solid fa-play" aria-hidden="true"></i> PLAYING...';
+        }
+        else if (state === 'FLYING') {
+            episodeState.innerHTML =
+                '<i class="fa-solid fa-rocket" aria-hidden="true"></i> FLYING...';
+        }
+        else {
+            episodeState.textContent = state;
+        }
+    }
+
+    function setGameMessage(type, title, body) {
+        const icons = {
+            info: 'fa-circle-info',
+            loading: 'fa-spinner fa-spin',
+            success: 'fa-circle-check',
+            failure: 'fa-circle-xmark',
+            warning: 'fa-triangle-exclamation'
+        };
+    
+        message.className = `game-message ${type}`;
+    
+        message.innerHTML =
+            `<strong><i class="fa-solid ${icons[type] || icons.info}"></i> ${title}</strong>` +
+            `<span>${body}</span>`;
+    
+        message.style.display = 'block';
     }
 
     function resetAll() {
@@ -91,12 +151,29 @@ real Gymnasium environment states and Q-values.
         clearInterval(aiTimer);
         aiTimer = null;
 
-        episodeState.textContent = 'READY';
+        if (apiAvailable) {
+            setStatus('DQN API online', 'ok');
+        } else {
+            setStatus('DQN API offline', 'warn');
+            setEpisodeState('API OFFLINE');
+
+            message.classList.remove('hide');
+            setGameMessage(
+                'warning',
+                'DQN API is offline.',
+                'Start the FastAPI server to evaluate the trained agent.'
+            );
+            return;
+        }
+
+        setEpisodeState('READY');
 
         message.classList.remove('hide');
-        message.innerHTML =
-            '<strong>DQN evaluation ready.</strong>' +
-            '<span>Press Run AI to evaluate the trained agent.</span>';
+        setGameMessage(
+            'info',
+            'DQN model ready.',
+            'Press Run AI to land the lunar lander.'
+        );
 
         clearQValues();
     }
@@ -259,14 +336,30 @@ real Gymnasium environment states and Q-values.
             const onPad = Math.abs(human.x - PAD_CENTER_X) < PAD_WIDTH/2;
             human.landed = soft && onPad;
             human.reward = human.landed ? 200 : -100;
-            episodeState.textContent = human.landed ? 'LANDED' : 'CRASHED';
+            if(human.landed){
+                setEpisodeState('LANDED');
+            }
+            else{
+                setEpisodeState('CRASHED');
+            }
+            
             message.classList.remove('hide');
-            message.innerHTML = human.landed
-                ? '<strong>Successful landing! <i class="fa-solid fa-rocket" aria-hidden="true"></i></strong><span>Restart to try again.</span>'
-                : '<strong>Crash landing.</strong>' +
-                '<span>↑ Slow your descent.<br>' +
-                '← / → Bring angle near 0°.<br>' +
-                'Land with low speed on the pad.</span>';
+            if (human.landed) {
+                setGameMessage(
+                    'success',
+                    'Successful landing!',
+                    'Restart to try again.'
+                );
+            } else {
+                setGameMessage(
+                    'failure',
+                    'Crash landing.',
+                    '↑ Slow your descent.<br>' +
+                    '← / → Bring angle near 0°.<br>' +
+                    'Land with low speed on the pad.'
+                );
+            }
+
             setStatus(human.landed ? 'Landing successful' : 'Episode ended', human.landed ? 'ok' : 'bad');
         }
         updateTelemetry(human);
@@ -1386,11 +1479,29 @@ real Gymnasium environment states and Q-values.
         updateQValues(frame.q_values, frame.action, 'DQN');
     
         if (frame.done) {
-            episodeState.textContent = frame.success ? 'LANDED' : 'ENDED';
+            if(frame.success){
+                setEpisodeState('LANDED');
+            }
+            else{
+                setEpisodeState('ENDED');
+            }
+            
             message.classList.remove('hide');
-            message.innerHTML = frame.success
-                ? '<strong>Agent landed successfully. <i class="fa-solid fa-rocket" aria-hidden="true"></i></strong><span>Evaluation complete.</span>'
-                : '<strong>Episode ended.</strong><span>Evaluation complete.</span>';
+            
+            if (frame.success) {
+                setGameMessage(
+                    'success',
+                    'Agent landed successfully.',
+                    'Evaluation complete.'
+                );
+            } else {
+                setGameMessage(
+                    'failure',
+                    'Episode ended.',
+                    'Evaluation complete.'
+                );
+            }
+
         } else {
             message.classList.add('hide');
         }
@@ -1431,10 +1542,17 @@ real Gymnasium environment states and Q-values.
 
     function playAIResult() {
         if (!aiReplay?.frames?.length) {
-            episodeState.textContent = 'ERROR';
-            setStatus('No evaluation frames received', 'bad');
+            setEpisodeState('ERROR');
+            setStatus('AI evaluation failed', 'bad');
+            setGameMessage(
+                'failure',
+                'No evaluation frames received',
+                'Please check the DQN API and try again.'
+            );
             return;
         } 
+
+        message.classList.add('hide');
 
         aiIndex = 0;
 
@@ -1460,7 +1578,8 @@ real Gymnasium environment states and Q-values.
         const fps = Number(aiReplay.fps || 18);
         const interval = 1000 / fps;
 
-        setStatus('AI evaluation running');
+        setStatus('AI landing lunar lander...', 'warn');
+        setEpisodeState('PLAYING');
 
         aiTimer = setInterval(() => {
             const frame = aiReplay.frames[aiIndex];
@@ -1478,12 +1597,11 @@ real Gymnasium environment states and Q-values.
                 clearInterval(aiTimer);
                 aiTimer = null;
 
-                setStatus(
-                    aiReplay.success
-                        ? 'AI landing successful'
-                        : 'AI episode complete',
-                    aiReplay.success ? 'ok' : 'warn'
-                );
+                if (aiReplay.success) {
+                    setStatus('AI landing successful', 'ok');
+                } else {
+                    setStatus('AI episode complete', 'warn');
+                }
 
                 // Replay is now completely finished.
                 if (mode === 'ai') {
@@ -1724,7 +1842,7 @@ real Gymnasium environment states and Q-values.
             <svg
                 class="reward-chart-svg"
                 viewBox="0 0 ${width} ${height}"
-                preserveAspectRatio="none"
+                preserveAspectRatio="xMidYMid meet"
                 role="img"
                 aria-label="Lunar Lander training reward curve"
             >
@@ -1846,9 +1964,15 @@ real Gymnasium environment states and Q-values.
 
         const requestId = ++aiRequestId;
 
-        message.classList.add('hide');
-        episodeState.textContent = 'RUNNING';
-        setStatus('Running DQN evaluation...');
+        setEpisodeState('LOADING');
+
+        setGameMessage(
+            'loading',
+            'Running DQN Evaluation...',
+            'The DQN model is evaluating the lunar landing.'
+        );
+
+        setStatus('AI evaluation in progress...', 'loading');
 
         startAIBtn.disabled = true;
         restartBtn.disabled = true;
@@ -1889,13 +2013,15 @@ real Gymnasium environment states and Q-values.
                 return;
             }
 
-            episodeState.textContent = 'ERROR';
+            setEpisodeState('ERROR');
             setStatus('AI evaluation failed', 'bad');
 
             message.classList.remove('hide');
-            message.innerHTML =
-                '<strong>AI evaluation failed.</strong>' +
-                `<span>${error.message}</span>`;
+            setGameMessage(
+                'failure',
+                'AI evaluation failed.',
+                error.message
+            );
 
             startAIBtn.disabled = false;
             restartBtn.disabled = false;
@@ -1986,12 +2112,14 @@ real Gymnasium environment states and Q-values.
             console.warn('DQN API unavailable:', error);
 
             if (mode === 'ai') {
-                episodeState.textContent = 'API OFFLINE';
+                setEpisodeState('API OFFLINE');
                 message.classList.remove('hide');
 
-                message.innerHTML =
-                    '<strong>DQN API is offline.</strong>' +
-                    '<span>Start the FastAPI server to evaluate the trained agent.</span>';
+                setGameMessage(
+                    'warning',
+                    'DQN API is offline.',
+                    'Start the FastAPI server to evaluate the trained agent.'
+                );
 
                 setStatus('DQN API offline', 'warn');
             }
@@ -2008,9 +2136,10 @@ real Gymnasium environment states and Q-values.
         document.querySelectorAll('.mode').forEach(b=>{const active=b===btn;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
         modeLabel.textContent=mode==='human'?'HUMAN CONTROL':'DQN EVALUATION';
         startAIBtn.classList.toggle('hidden',mode!=='ai');
+        keyboardHint.classList.toggle('hidden', mode !== 'human');
         restartBtn.innerHTML = mode === 'human'
             ? '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Restart'
-            : '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reset replay';
+            : '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reset';
         
         cancelAnimationFrame(raf);
         aiRequestId++;
@@ -2022,25 +2151,27 @@ real Gymnasium environment states and Q-values.
         last=performance.now();
         
         if (mode === 'human') {
-            setStatus('Human mode ready', 'ok');
             resetHuman();
         } else {
             startAIBtn.disabled = false;
             restartBtn.disabled = false;
-
-            if (apiAvailable) {
-                setStatus('DQN evaluation ready', 'ok');
-            } else {
-                setStatus('DQN API offline', 'warn');
-            }
-        
             resetAIView();
         }
         raf=requestAnimationFrame(loop);
     }));
     restartBtn.addEventListener('click',resetAll);
     startAIBtn.addEventListener('click',runAI);
-    window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowLeft','ArrowRight'].includes(e.key)){keys.add(e.key);e.preventDefault();}});
+
+    window.addEventListener('keydown', e => {
+        if (
+            mode === 'human' &&
+            ['ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+        ) {
+            keys.add(e.key);
+            e.preventDefault();
+        }
+    });
+
     window.addEventListener('keyup',e=>keys.delete(e.key));
 
     updateTelemetryMode();
