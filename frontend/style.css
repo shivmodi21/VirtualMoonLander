@@ -936,8 +936,10 @@ code {
 }
 
 /* Icon before button text */
+#restart i,
 #startAI i,
-#restart i {
+#replayAI i,
+#resetAI i {
     margin-right: 5px;
 }
 

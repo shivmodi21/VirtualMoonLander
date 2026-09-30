@@ -14,6 +14,8 @@ real Gymnasium environment states and Q-values.
     const message = document.getElementById('gameMessage');
     const restartBtn = document.getElementById('restart');
     const startAIBtn = document.getElementById('startAI');
+    const replayAIBtn = document.getElementById('replayAI');
+    const resetAIBtn = document.getElementById('resetAI');
     const keyboardHint = document.getElementById('keyboardHint');
     const qDescription = document.getElementById('qDescription');
     const decision = document.getElementById('decision');
@@ -131,22 +133,57 @@ real Gymnasium environment states and Q-values.
         message.style.display = 'block';
     }
 
+    function updateAIControls() {
+        const hasReplay = Boolean(aiReplay?.frames?.length);
+        const isEvaluating = episodeState.textContent === 'LOADING';
+        const isPlaying = Boolean(aiTimer);
+    
+        if (mode !== 'ai') {
+            startAIBtn.classList.add('hidden');
+            replayAIBtn.classList.add('hidden');
+            resetAIBtn.classList.add('hidden');
+            return;
+        }
+    
+        startAIBtn.classList.remove('hidden');
+        replayAIBtn.classList.remove('hidden');
+        resetAIBtn.classList.remove('hidden');
+    
+        // Run a new DQN evaluation.
+        startAIBtn.disabled = isEvaluating || isPlaying || !apiAvailable;
+
+        // Replay the already-evaluated episode.
+        // This remains available even while the replay is running.
+        replayAIBtn.disabled = !hasReplay || isEvaluating;
+
+        // Discard the current evaluation.
+        resetAIBtn.disabled = !hasReplay || isEvaluating;
+    }
+
     function resetAll() {
         cancelAnimationFrame(raf);
+    
         aiRequestId++;
-        startAIBtn.disabled = false;
-        restartBtn.disabled = false;
+    
         clearInterval(aiTimer);
         aiTimer = null;
-        if (mode === 'human') resetHuman(); else resetAIView();
+    
+        restartBtn.disabled = false;
+    
+        resetHuman();
+    
         last = performance.now();
         raf = requestAnimationFrame(loop);
     }
 
-    function resetAIView() {
+    function resetAIView(discardReplay = false) {
         aiIndex = 0;
         aiVisualOffsetX = 0;
         aiVisualOffsetY = 0;
+    
+        if (discardReplay) {
+            aiReplay = null;
+        }
 
         clearInterval(aiTimer);
         aiTimer = null;
@@ -163,6 +200,7 @@ real Gymnasium environment states and Q-values.
                 'DQN API is offline.',
                 'Start the FastAPI server to evaluate the trained agent.'
             );
+            updateAIControls();
             return;
         }
 
@@ -176,6 +214,7 @@ real Gymnasium environment states and Q-values.
         );
 
         clearQValues();
+        updateAIControls();
     }
 
     function actionName(action) {
@@ -1454,6 +1493,17 @@ real Gymnasium environment states and Q-values.
         };
     }
 
+    function replayAI() {
+        if (!aiReplay?.frames?.length || mode !== 'ai') {
+            return;
+        }
+    
+        clearInterval(aiTimer);
+        aiTimer = null;
+    
+        playAIResult();
+    }
+
     function updateAIFrame(frame) {
         if (!frame) return;
         const s = frame.state || {};
@@ -1473,7 +1523,7 @@ real Gymnasium environment states and Q-values.
             angle: angle,
             fuel: null,
             contacts: contacts,
-            reward: Number(frame.reward ?? 0)
+            reward: Number(frame.cumulative_reward ?? frame.reward ?? 0)
         }, true);
     
         updateQValues(frame.q_values, frame.action, 'DQN');
@@ -1580,6 +1630,7 @@ real Gymnasium environment states and Q-values.
 
         setStatus('AI landing lunar lander...', 'warn');
         setEpisodeState('PLAYING');
+        updateAIControls();
 
         aiTimer = setInterval(() => {
             const frame = aiReplay.frames[aiIndex];
@@ -1605,8 +1656,7 @@ real Gymnasium environment states and Q-values.
 
                 // Replay is now completely finished.
                 if (mode === 'ai') {
-                    startAIBtn.disabled = false;
-                    restartBtn.disabled = false;
+                    updateAIControls();
                 }
             }
         }, interval);
@@ -1975,7 +2025,8 @@ real Gymnasium environment states and Q-values.
         setStatus('AI evaluation in progress...', 'loading');
 
         startAIBtn.disabled = true;
-        restartBtn.disabled = true;
+        replayAIBtn.disabled = true;
+        resetAIBtn.disabled = true;
 
         try {
             const response = await fetch(`/api/evaluate`, {
@@ -2023,8 +2074,7 @@ real Gymnasium environment states and Q-values.
                 error.message
             );
 
-            startAIBtn.disabled = false;
-            restartBtn.disabled = false;
+            updateAIControls();
         }
     }
 
@@ -2129,38 +2179,64 @@ real Gymnasium environment states and Q-values.
         }
     }
 
-    document.querySelectorAll('.mode').forEach(btn=>btn.addEventListener('click',()=>{
-        mode=btn.dataset.mode;
+    document.querySelectorAll('.mode').forEach(btn => btn.addEventListener('click', () => {
+        mode = btn.dataset.mode;
         updateTelemetryMode();
-
-        document.querySelectorAll('.mode').forEach(b=>{const active=b===btn;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
-        modeLabel.textContent=mode==='human'?'HUMAN CONTROL':'DQN EVALUATION';
-        startAIBtn.classList.toggle('hidden',mode!=='ai');
-        keyboardHint.classList.toggle('hidden', mode !== 'human');
-        restartBtn.innerHTML = mode === 'human'
-            ? '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Restart'
-            : '<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reset';
-        
+    
+        document.querySelectorAll('.mode').forEach(b => {
+            const active = b === btn;
+            b.classList.toggle('active', active);
+            b.setAttribute('aria-selected', String(active));
+        });
+    
+        modeLabel.textContent =
+            mode === 'human' ? 'HUMAN CONTROL' : 'DQN EVALUATION';
+    
         cancelAnimationFrame(raf);
         aiRequestId++;
-
-        startAIBtn.disabled = false;
-        restartBtn.disabled = false;
+    
         clearInterval(aiTimer);
-        aiTimer=null;
-        last=performance.now();
-        
+        aiTimer = null;
+    
+        last = performance.now();
+    
         if (mode === 'human') {
+            restartBtn.classList.remove('hidden');
+    
+            startAIBtn.classList.add('hidden');
+            replayAIBtn.classList.add('hidden');
+            resetAIBtn.classList.add('hidden');
+    
+            keyboardHint.classList.remove('hidden');
+    
             resetHuman();
         } else {
-            startAIBtn.disabled = false;
-            restartBtn.disabled = false;
-            resetAIView();
+            restartBtn.classList.add('hidden');
+    
+            startAIBtn.classList.remove('hidden');
+            replayAIBtn.classList.remove('hidden');
+            resetAIBtn.classList.remove('hidden');
+    
+            keyboardHint.classList.add('hidden');
+    
+            resetAIView(true);
+            updateAIControls();
         }
-        raf=requestAnimationFrame(loop);
+    
+        raf = requestAnimationFrame(loop);
     }));
-    restartBtn.addEventListener('click',resetAll);
-    startAIBtn.addEventListener('click',runAI);
+    restartBtn.addEventListener('click', resetAll);
+    startAIBtn.addEventListener('click', runAI);
+    replayAIBtn.addEventListener('click', replayAI);
+    resetAIBtn.addEventListener('click', () => {
+        clearInterval(aiTimer);
+        aiTimer = null;
+
+        aiRequestId++;
+
+        resetAIView(true);
+        updateAIControls();
+    });
 
     window.addEventListener('keydown', e => {
         if (

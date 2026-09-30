@@ -87,6 +87,7 @@ def evaluate_episode(model, seed: int = 0):
         next_state, reward, terminated, truncated, _ = env.step(action)
 
         total_reward += float(reward)
+        cumulative_reward = total_reward
 
         x, y = to_canvas(state_array)
 
@@ -103,7 +104,8 @@ def evaluate_episode(model, seed: int = 0):
                 "q_values": q_values.astype(float).tolist(),
                 "action": action,
                 "reward": float(reward),
-
+                "cumulative_reward": cumulative_reward,
+                
                 "x": x,
                 "y": y,
 
