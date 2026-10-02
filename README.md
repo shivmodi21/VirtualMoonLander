@@ -4,7 +4,7 @@ An interactive Deep Reinforcement Learning project where a **Deep Q-Network (DQN
 
 ## 🚀 Live Demo
 
-[**Launch VirtualMoonLander →**](https://virtualmoonlander.onrender.com/)
+[Virtual Moon Lander](https://virtualmoonlander.onrender.com/)
 
 Open the deployed application to interact with the project directly in your browser.
 
