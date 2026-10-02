@@ -444,13 +444,7 @@ making the project easier to run, inspect, and present.
 ---
 
 
+## Author
 
-# Author
-
-**Shiv Modi**
-
-B.Tech. + M.Tech. — IIT Bombay
-
-- GitHub: [https://github.com/shivmodi21](https://github.com/shivmodi21)
-- Portfolio: [https://shivmodi21.github.io/](https://shivmodi21.github.io/)
-- LinkedIn: [https://www.linkedin.com/in/shivmodi210/](https://www.linkedin.com/in/shivmodi210/)
+**Shiv Modi** — B.Tech. + M.Tech., IIT Bombay  
+[GitHub](https://github.com/shivmodi21) · [Portfolio](https://shivmodi21.github.io/) · [LinkedIn](https://www.linkedin.com/in/shivmodi210/)
